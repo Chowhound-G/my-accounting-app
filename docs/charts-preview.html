@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据统计 - BI 可视化</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .chart-container { min-height: 300px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 顶部导航 -->
+    <nav class="bg-white shadow-sm border-b mb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-xl font-semibold text-gray-900">💰 我的记账本</h1>
+                    <div class="hidden md:flex space-x-6">
+                        <a href="#" class="text-gray-600 hover:text-gray-900">仪表盘</a>
+                        <a href="#" class="text-blue-600 font-medium">数据统计</a>
+                        <a href="#" class="text-gray-600 hover:text-gray-900">交易</a>
+                        <a href="#" class="text-gray-600 hover:text-gray-900">账户</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 时间范围选择器 -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex space-x-2">
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg">本月</button>
+                <button class="px-4 py-2 bg-white text-gray-600 rounded-lg hover:bg-gray-50">本季</button>
+                <button class="px-4 py-2 bg-white text-gray-600 rounded-lg hover:bg-gray-50">本年</button>
+                <button class="px-4 py-2 bg-white text-gray-600 rounded-lg hover:bg-gray-50">自定义</button>
+            </div>
+            <div class="text-sm text-gray-500">
+                数据更新于：2024-03-17 14:30
+            </div>
+        </div>
+
+        <!-- 核心指标卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">总收入</div>
+                        <div class="text-2xl font-bold text-gray-900">¥8,500</div>
+                        <div class="text-xs text-green-600 mt-1">↑ 12% vs 上月</div>
+                    </div>
+                    <div class="text-3xl">📈</div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">总支出</div>
+                        <div class="text-2xl font-bold text-gray-900">¥3,420</div>
+                        <div class="text-xs text-red-600 mt-1">↓ 5% vs 上月</div>
+                    </div>
+                    <div class="text-3xl">📉</div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">净收入</div>
+                        <div class="text-2xl font-bold text-green-600">¥5,080</div>
+                        <div class="text-xs text-gray-500 mt-1">储蓄率: 59.8%</div>
+                    </div>
+                    <div class="text-3xl">💰</div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-sm text-gray-600 mb-1">交易笔数</div>
+                        <div class="text-2xl font-bold text-gray-900">47</div>
+                        <div class="text-xs text-blue-600 mt-1">日均 1.5 笔</div>
+                    </div>
+                    <div class="text-3xl">📊</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 图表区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <!-- 收支趋势图 -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">收支趋势</h3>
+                <div id="trendChart" class="chart-container" style="height: 300px;"></div>
+            </div>
+
+            <!-- 收支构成饼图 -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">支出构成</h3>
+                <div id="pieChart" class="chart-container" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <!-- 第三行图表 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- 分类排行 -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">分类支出排行</h3>
+                <div id="barChart" class="chart-container" style="height: 300px;"></div>
+            </div>
+
+            <!-- 账户余额分布 -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">账户余额分布</h3>
+                <div id="accountChart" class="chart-container" style="height: 300px;"></div>
+            </div>
+
+            <!-- 每日支出热力图 -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">每日支出模式</h3>
+                <div id="heatmapChart" class="chart-container" style="height: 300px;"></div>
+            </div>
+        </div>
+
+        <!-- 详细数据表格 -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">分类明细</h3>
+                <button class="text-blue-600 hover:text-blue-700 text-sm">导出数据</button>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="text-left py-3 px-4 text-gray-600 font-medium">分类</th>
+                            <th class="text-right py-3 px-4 text-gray-600 font-medium">支出金额</th>
+                            <th class="text-right py-3 px-4 text-gray-600 font-medium">占比</th>
+                            <th class="text-right py-3 px-4 text-gray-600 font-medium">笔数</th>
+                            <th class="text-right py-3 px-4 text-gray-600 font-medium">平均</th>
+                            <th class="text-right py-3 px-4 text-gray-600 font-medium">趋势</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-orange-500 rounded-full"></div>
+                                    <span>餐饮</span>
+                                </div>
+                            </td>
+                            <td class="text-right py-3 px-4 font-medium">¥1,200</td>
+                            <td class="text-right py-3 px-4">35.1%</td>
+                            <td class="text-right py-3 px-4">18</td>
+                            <td class="text-right py-3 px-4">¥67</td>
+                            <td class="text-right py-3 px-4 text-green-600">↑ 8%</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                                    <span>购物</span>
+                                </div>
+                            </td>
+                            <td class="text-right py-3 px-4 font-medium">¥980</td>
+                            <td class="text-right py-3 px-4">28.7%</td>
+                            <td class="text-right py-3 px-4">5</td>
+                            <td class="text-right py-3 px-4">¥196</td>
+                            <td class="text-right py-3 px-4 text-red-600">↓ 3%</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-3 h-3 bg-blue-500 rounded-full"></div>
+                                    <span>交通</span>
+                                </div>
+                            </td>
+                            <td class="text-right py-3 px-4 font-medium">¥650</td>
+                            <td class="text-right py-3 px-4">19.0%</td>
+                            <td class="text-right py-3 px-4">12</td>
+                            <td class="text-right py-3 px-4">¥54</td>
+                            <td class="text-right py-3 px-4 text-green-600">↑ 15%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 收支趋势图
+        const trendChart = echarts.init(document.getElementById('trendChart'));
+        trendChart.setOption({
+            tooltip: { trigger: 'axis' },
+            legend: { data: ['收入', '支出', '净收入'] },
+            xAxis: {
+                type: 'category',
+                data: ['1月', '2月', '3月', '4月', '5月', '6月']
+            },
+            yAxis: { type: 'value' },
+            series: [
+                {
+                    name: '收入',
+                    type: 'line',
+                    data: [7500, 8200, 7800, 8500, 9000, 8500],
+                    smooth: true,
+                    itemStyle: { color: '#10B981' }
+                },
+                {
+                    name: '支出',
+                    type: 'line',
+                    data: [3200, 3800, 3500, 4200, 3600, 3420],
+                    smooth: true,
+                    itemStyle: { color: '#EF4444' }
+                },
+                {
+                    name: '净收入',
+                    type: 'bar',
+                    data: [4300, 4400, 4300, 4300, 5400, 5080],
+                    itemStyle: { color: '#3B82F6' }
+                }
+            ]
+        });
+
+        // 支出构成饼图
+        const pieChart = echarts.init(document.getElementById('pieChart'));
+        pieChart.setOption({
+            tooltip: { trigger: 'item', formatter: '{a} <br/>{b}: {c} ({d}%)' },
+            legend: { orient: 'vertical', right: 10, top: 'center' },
+            series: [{
+                name: '支出',
+                type: 'pie',
+                radius: ['40%', '70%'],
+                avoidLabelOverlap: false,
+                itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
+                label: { show: false },
+                emphasis: { label: { show: true, fontSize: 16, fontWeight: 'bold' } },
+                data: [
+                    { value: 1200, name: '餐饮', itemStyle: { color: '#F97316' } },
+                    { value: 980, name: '购物', itemStyle: { color: '#A855F7' } },
+                    { value: 650, name: '交通', itemStyle: { color: '#3B82F6' } },
+                    { value: 590, name: '娱乐', itemStyle: { color: '#EC4899' } }
+                ]
+            }]
+        });
+
+        // 分类柱状图
+        const barChart = echarts.init(document.getElementById('barChart'));
+        barChart.setOption({
+            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+            xAxis: { type: 'value' },
+            yAxis: {
+                type: 'category',
+                data: ['娱乐', '交通', '购物', '餐饮'],
+                axisLabel: { fontSize: 12 }
+            },
+            series: [{
+                type: 'bar',
+                data: [
+                    { value: 590, itemStyle: { color: '#EC4899' } },
+                    { value: 650, itemStyle: { color: '#3B82F6' } },
+                    { value: 980, itemStyle: { color: '#A855F7' } },
+                    { value: 1200, itemStyle: { color: '#F97316' } }
+                ],
+                label: { show: true, position: 'right', formatter: '¥{c}' }
+            }]
+        });
+
+        // 账户余额饼图
+        const accountChart = echarts.init(document.getElementById('accountChart'));
+        accountChart.setOption({
+            tooltip: { trigger: 'item' },
+            series: [{
+                type: 'pie',
+                radius: '70%',
+                data: [
+                    { value: 5230, name: '支付宝', itemStyle: { color: '#3B82F6' } },
+                    { value: 2350, name: '现金', itemStyle: { color: '#10B981' } },
+                    { value: -5000, name: '信用卡', itemStyle: { color: '#EF4444' } }
+                ],
+                label: {
+                    formatter: '{b}\n¥{c}'
+                }
+            }]
+        });
+
+        // 热力图（简化版）
+        const heatmapChart = echarts.init(document.getElementById('heatmapChart'));
+        const hours = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+        const days = ['第1周', '第2周', '第3周', '第4周'];
+        const data = [];
+        for (let i = 0; i < hours.length; i++) {
+            for (let j = 0; j < days.length; j++) {
+                data.push([j, i, Math.floor(Math.random() * 200)]);
+            }
+        }
+        heatmapChart.setOption({
+            tooltip: { position: 'top' },
+            grid: { height: '70%', top: '10%' },
+            xAxis: { type: 'category', data: days, splitArea: { show: true } },
+            yAxis: { type: 'category', data: hours, splitArea: { show: true } },
+            visualMap: {
+                min: 0, max: 200,
+                calculable: true,
+                orient: 'horizontal',
+                left: 'center',
+                bottom: '0%',
+                inRange: { color: ['#E0F2FE', '#0284C7'] }
+            },
+            series: [{
+                name: '支出金额',
+                type: 'heatmap',
+                data: data,
+                label: { show: false },
+                emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0, 0, 0, 0.5)' } }
+            }]
+        });
+
+        // 响应式调整
+        window.addEventListener('resize', () => {
+            [trendChart, pieChart, barChart, accountChart, heatmapChart].forEach(chart => chart.resize());
+        });
+    </script>
+</body>
+</html>
