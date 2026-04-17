@@ -1,0 +1,95 @@
+name: Build Next.js Application
+
+on:
+  push:
+    branches: [feature/nextjs-app, main]
+  pull_request:
+    branches: [feature/nextjs-app, main]
+
+jobs:
+  build:
+    name: Build Next.js App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: worktrees/nextjs-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./worktrees/nextjs-app
+        run: npm ci
+
+      - name: Build application
+        working-directory: ./worktrees/nextjs-app
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: accounting
+          DB_USER: postgres
+          DB_PASSWORD: test_password
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: test_secret_key_for_build
+        run: npm run build
+
+      - name: Run linter
+        working-directory: ./worktrees/nextjs-app
+        run: npm run lint
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-build
+          path: worktrees/nextjs-app/.next
+          retention-days: 7
+
+  docker-build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/feature/nextjs-app'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}-nextjs
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=nextjs-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./worktrees/nextjs-app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image digest
+        run: echo "Image pushed with digest ${{ steps.meta.outputs.digest }}"
