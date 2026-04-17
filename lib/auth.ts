@@ -2,6 +2,7 @@ import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcrypt';
 import { query } from '@/lib/db';
+import NextAuth from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -61,3 +62,21 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export const handler = NextAuth(authOptions);
+
+export async function getServerSession() {
+  const request = new Request(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/auth/session`, {
+    headers: {
+      cookie: typeof document === 'undefined' ? '' : document.cookie,
+    },
+  });
+
+  const response = await fetch(request);
+  if (!response.ok) {
+    return null;
+  }
+
+  const session = await response.json();
+  return session || null;
+}

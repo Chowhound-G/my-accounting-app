@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Install build dependencies for bcrypt
+RUN apk add --no-cache python3 make g++
+
 # Copy package files
 COPY package*.json ./
 
