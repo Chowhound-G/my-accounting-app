@@ -1,0 +1,63 @@
+name: CI (Lite Version)
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # 简化版 CI - 只保留核心检查，节省分钟数
+  test:
+    name: Quick Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 5  # 限制运行时间
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run health check
+        working-directory: ./backend
+        run: node health-check.js || echo "Health check skipped (no server)"
+        continue-on-error: true
+
+      - name: Validate syntax
+        working-directory: ./backend
+        run: node -c server.js && echo "✅ Syntax valid"
+
+  # 可选：只在 main 分支运行完整测试
+  full-test:
+    name: Full Test Suite
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t accounting-api:test ./backend
+
+      - name: Start services
+        run: docker-compose up -d
+
+      - name: Wait for services
+        run: sleep 10
+
+      - name: Health check
+        run: curl -f http://localhost:3000/health || exit 1
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose down
