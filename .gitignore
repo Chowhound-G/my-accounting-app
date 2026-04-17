@@ -35,6 +35,10 @@ coverage/
 dist/
 build/
 
+# Next.js
+.next/
+/out/
+
 # Git worktrees
 worktrees/
 .worktrees/
