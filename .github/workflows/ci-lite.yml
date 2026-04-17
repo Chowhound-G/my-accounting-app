@@ -7,11 +7,11 @@ on:
     branches: [ main ]
 
 jobs:
-  # 简化版 CI - 只保留核心检查，节省分钟数
+  # 快速测试 - 验证代码语法和依赖
   test:
     name: Quick Test
     runs-on: ubuntu-latest
-    timeout-minutes: 5  # 限制运行时间
+    timeout-minutes: 5
 
     steps:
       - name: Checkout code
@@ -26,38 +26,88 @@ jobs:
         working-directory: ./backend
         run: npm ci
 
-      - name: Run health check
+      - name: Validate Node.js syntax
         working-directory: ./backend
-        run: node health-check.js || echo "Health check skipped (no server)"
-        continue-on-error: true
+        run: |
+          node -c server.js && echo "✅ server.js syntax valid"
+          node -c health-check.js && echo "✅ health-check.js syntax valid"
 
-      - name: Validate syntax
+      - name: Check package.json
         working-directory: ./backend
-        run: node -c server.js && echo "✅ Syntax valid"
+        run: |
+          if [ -f package.json ]; then
+            echo "✅ package.json exists"
+            cat package.json
+          fi
 
-  # 可选：只在 main 分支运行完整测试
+  # 完整测试 - 验证 Docker 构建和服务运行
   full-test:
     name: Full Test Suite
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    timeout-minutes: 10
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image
-        run: docker build -t accounting-api:test ./backend
+        run: |
+          docker build -t accounting-api:test ./backend
+          echo "✅ Docker image built successfully"
 
-      - name: Start services
-        run: docker-compose up -d
+      - name: Install dependencies
+        working-directory: ./backend
+        run: npm ci
 
-      - name: Wait for services
-        run: sleep 10
+      - name: Initialize test database
+        env:
+          PGPASSWORD: test_password
+        run: |
+          psql -h localhost -U test_user -d test_db -f init.sql
+          echo "✅ Database initialized"
+
+      - name: Start API server
+        working-directory: ./backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: test_db
+          DB_USER: test_user
+          DB_PASSWORD: test_password
+          PORT: 3000
+        run: |
+          node server.js &
+          sleep 5
+          echo "✅ API server started"
 
       - name: Health check
-        run: curl -f http://localhost:3000/health || exit 1
-
-      - name: Cleanup
-        if: always()
-        run: docker-compose down
+        run: |
+          for i in {1..10}; do
+            if curl -f http://localhost:3000/health; then
+              echo "✅ Health check passed"
+              exit 0
+            fi
+            echo "Waiting for server... ($i/10)"
+            sleep 2
+          done
+          echo "❌ Health check failed"
+          exit 1
