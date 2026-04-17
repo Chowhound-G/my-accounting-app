@@ -1,0 +1,15 @@
+services:
+  # API 服务
+  - type: web
+    name: accounting-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    healthCheckPath: /health
+
+    # PostgreSQL 数据库
+  - type: pserv
+    name: accounting-db
+    database: postgresql
+    plan: free
+    maxconnections: 10
