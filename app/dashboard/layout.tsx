@@ -50,6 +50,10 @@ export default async function DashboardLayout({
               <span>📈</span>
               <span>统计</span>
             </a>
+            <a href="/dashboard/settings" className="flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-50">
+              <span>⚙️</span>
+              <span>设置</span>
+            </a>
           </nav>
         </aside>
         <main className="flex-1 p-6">{children}</main>
