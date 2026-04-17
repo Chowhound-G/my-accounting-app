@@ -34,3 +34,7 @@ coverage/
 # Build output
 dist/
 build/
+
+# Git worktrees
+worktrees/
+.worktrees/
